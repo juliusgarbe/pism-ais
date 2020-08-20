@@ -1,5 +1,6 @@
+
 """
-matthias.mengel@pik, torsten.albrecht@pik, ronja.reese@pik
+matthias.mengel@pik, torsten.albrecht@pik, ronja.reese@pik, julius.garbe@pik
 """
 
 import os, sys
@@ -13,20 +14,20 @@ if project_root not in sys.path: sys.path.append(project_root)
 import config as cf; reload(cf)
 import pism_input.pism_input as pi; reload(pi)
 
-dataset = "racmo_wessem"
+dataset = "racmo_cesm2"
 data_path = os.path.join(cf.output_data_path, dataset)
 
 if not os.path.exists(data_path): os.makedirs(data_path)
 
-output_file = os.path.join(data_path, dataset+"_input.nc")
+output_file = os.path.join(data_path, dataset+"_input_hist.nc")
 
-source_file = {"t2m": os.path.join(cf.racmo_wessem_data_path,"t2m_RACMO2.4_yearly_ANT27_1979_2016.nc"),
-                "smb": os.path.join(cf.racmo_wessem_data_path,"SMB_RACMO2.4_yearly_ANT27_1979_2016.nc"),
-                "evap": os.path.join(cf.racmo_wessem_data_path,"evap_RACMO2.3p2_yearly_ANT27_1979_2016.nc"),
-                "precip": os.path.join(cf.racmo_wessem_data_path,"precip_RACMO2.3p2_yearly_ANT27_1979_2016.nc")
-                }
+source_file = {"tskin": os.path.join(cf.racmo_cesm2_data_path,"hist/tskin_monthlyA_ANT27_CESM2_RACMO2.3p2_195001_201412.nc"),
+               "smb": os.path.join(cf.racmo_cesm2_data_path,"hist/smb_monthlyS_ANT27_CESM2_RACMO2.3p2_195001_201412.nc")}
+               #"t2m": os.path.join(cf.racmo_cesm2_data_path,"hist/t2m_monthlyA_ANT27_CESM2_RACMO2.3p2_195001_201412.nc"),
+               #"precip": os.path.join(cf.racmo_cesm2_data_path,"hist/precip_monthlyS_ANT27_CESM2_RACMO2.3p2_195001_201412.nc"),
+               #}
 
-process_file = {var:os.path.join(data_path, dataset+"_"+var+".nc") for var in ["t2m","smb","evap","precip"]}
+process_file = {var:os.path.join(data_path, dataset+"_"+var+"_hist.nc") for var in ["tskin","smb"]}
 
 for var,fl in process_file.iteritems():
     try:
@@ -34,7 +35,8 @@ for var,fl in process_file.iteritems():
     except OSError:
         pass
 
-for var in ["t2m","smb","evap","precip"]:
+#for var in ["tskin","smb","t2m","precip"]:
+for var in ["tskin","smb"]:
 
     subprocess.check_call("ncks -A -v "+var+",lon,lat "+source_file[var]+" "+process_file[var],shell=True)
 
@@ -42,7 +44,10 @@ for var in ["t2m","smb","evap","precip"]:
 
     subprocess.check_call("ncatted -O -a grid_mapping,"+var+",d,, "+process_file[var],shell=True)
 
+    # Here any string could be used, if the ob_trans projection is not know by the proj version. For bilinear remapping only the lon lat values count.
     subprocess.check_call('ncatted -O -a proj4,global,o,c,"+lon_0=10.0 +ellps=WGS84 +datum=WGS84 +lat_ts=-71.0 +proj=stere +x_0=0.0 +units=m +y_0=0.0 +lat_0=-90.0" '+process_file[var], shell=True)
+    #subprocess.check_call('ncatted -O -a proj4,global,o,c,"-m 57.295779506 +proj=ob_tran +o_proj=latlon +o_lat_p=-180.0 +lon_0=10.0 +x_0=0.0 +units=m +y_0=0.0" '+process_file[var], shell=True)
+
 
     subprocess.check_call('ncwa -O -a height '+process_file[var]+" "+process_file[var], shell=True) #delete the height dimension!
     subprocess.check_call('ncks -O -x -v height '+process_file[var]+" "+process_file[var], shell=True) #delete the height dimension!
@@ -69,42 +74,51 @@ for var in ["t2m","smb","evap","precip"]:
 
 # process_file["smb"] = smb_omask_file
 
-merge_these_files = " ".join([process_file[var] for var in ["t2m","smb","evap","precip"]])
+#merge_these_files = " ".join([process_file[var] for var in ["tskin","smb","t2m","precip"]])
+merge_these_files = " ".join([process_file[var] for var in ["tskin","smb"]])
 
 subprocess.check_call('cdo -O merge '+merge_these_files+" "+output_file, shell=True)
 
 # make all variables double (some already are).
-subprocess.check_call("ncap2 -O -s 't2m=double(t2m);smb=double(smb);evap=double(evap);precip=double(precip)' "+
+subprocess.check_call("ncap2 -O -s 'tskin=double(tskin);smb=double(smb);' "+
                       output_file+" "+output_file,shell=True)
 
-subprocess.check_call("ncrename -v t2m,ice_surface_temp -O "+output_file+" "+output_file,shell=True)
-
 # Fill the missing SMB field over ocean with the proxy precip - evaporation
-ncf = nc.Dataset(output_file,"a")
-smb = ncf.variables["smb"][:]
+#ncf = nc.Dataset(output_file,"a")
+#smb = ncf.variables["smb"][:]
 # be aware: this masking is only valid for this dataset and timestep zero.
-mask_ocean = smb[0,:,:] < -0.009
-mask_ocean_expanded = np.tile(mask_ocean,(smb.shape[0],1,1))
+#mask_ocean = smb[0,:,:] < -0.009
+#mask_ocean_expanded = np.tile(mask_ocean,(smb.shape[0],1,1))
 # a proxy for smb
-smb_over_ocean = ncf.variables["precip"][:] + ncf.variables["evap"][:]
-smb[mask_ocean_expanded] = smb_over_ocean[mask_ocean_expanded]
-ncf.variables["smb"][:] = smb
-ncf.smb_comment = "SMB is approximated by precip-evap over the ocean."
-ncf.description = "RACMO2.3p2 data (ANT27/2) forced by ERA-Interim provide yearly mean air temperature (t2m) and surface mass balance (smb) for the years 1979-2016, here averaged over CMIP5 period 1985-2005"
-ncf.link= "https://www.projects.science.uu.nl/iceclimate/publications/data/2018/vwessem2018_tc/RACMO_Yearly/"
-ncf.overview = "https://www.projects.science.uu.nl/iceclimate/models/antarctica.php"
-ncf.reference = "Van Wessem, Jan Melchior, Willem Jan Van De Berg, Brice PY Noël, Erik Van Meijgaard, Charles Amory, Gerit Birnbaum, Constantijn L. Jakobs et al. Modelling the climate and surface mass balance of polar ice sheets using racmo2: Part 2: Antarctica (1979-2016). Cryosphere 12, no. 4 (2018): 1479-1498."
+#smb_over_ocean = ncf.variables["precip"][:] + ncf.variables["evap"][:]
+#smb[mask_ocean_expanded] = smb_over_ocean[mask_ocean_expanded]
+#ncf.variables["smb"][:] = smb
+#ncf.smb_comment = "SMB is approximated by precip-evap over the ocean."
+#ncf.close()
 
-ncf.close()
+# attribute fixes
+subprocess.check_call('ncatted -a units,x,o,c,"meters" '+output_file,shell=True)
+subprocess.check_call('ncatted -a units,y,o,c,"meters" '+output_file,shell=True)
+#subprocess.check_call('ncatted -a units,time_bnds,o,c,"days since 1950-01-01 00:00:00.0" '+output_file,shell=True)
 
 subprocess.check_call('ncatted -a units,smb,o,c,"kg m-2 year-1" '+output_file,shell=True)
+#subprocess.check_call('ncatted -a units,precip,o,c,"kg m-2 year-1" '+output_file,shell=True)
+
+# rename variables
+subprocess.check_call("ncrename -v tskin,ice_surface_temp -O "+output_file+" "+output_file,shell=True)
 subprocess.check_call("ncrename -v smb,climatic_mass_balance -O "+output_file+" "+output_file,shell=True)
-subprocess.check_call('ncatted -a units,precip,o,c,"kg m-2 year-1" '+output_file,shell=True)
-subprocess.check_call("ncrename -v precip,precipitation -O "+output_file+" "+output_file,shell=True)
-subprocess.check_call("ncap2 -O -s 'air_temp=ice_surface_temp' "+output_file+" "+output_file,shell=True)
+#subprocess.check_call("ncrename -v t2m,air_temp -O "+output_file+" "+output_file,shell=True)
+#subprocess.check_call("ncrename -v precip,precipitation -O "+output_file+" "+output_file,shell=True)
+
+
+subprocess.check_call('ncks -O -C -x -v lon_2,lat_2,lon_3,lat_3 '+output_file+" "+output_file, shell=True)
+#RACMO grid actually comes on a lon lat coordinate, so multipliaction here provides values close to meters, but this is not important here
+subprocess.check_call("ncap2 -O -s 'x=x*1.0e5;y=y*1.0e5' "+output_file+" "+output_file,shell=True)
+#subprocess.check_call("ncks -C -O -x -v lon,lat "+output_file+" "+output_file,shell=True)
+
 
 # prepare the input file for cdo remapping
 # this step takes a while for high resolution data (i.e. 1km)
-# pi.prepare_ncfile_for_cdo(output_file)
+pi.prepare_ncfile_for_cdo(output_file)
 
 print " RACMO file",output_file,"successfully preprocessed."

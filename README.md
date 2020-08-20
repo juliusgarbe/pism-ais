@@ -51,6 +51,14 @@ pism_input
 |   +-- merge_and_rename_variables.py
 |   +-- remap.py
 |   +-- time_mean.py
++-- racmo_hadcm3
+|   +-- merge_and_rename_variables_c20/a1b.py
++-- racmo_cesm2
+|   +-- merge_and_rename_variables_hist/spp585.py
+|   +-- remap.py
+|   +-- time_mean.py
+|   +-- cdo_remap_hist/spp858.sh
+|   +-- cdo_remap_yearly.sh (example for year-wise processing)
 +-- zwally_basins
 |   +-- download_and_extend_to_ocean.py
 |   +-- remap.py (with local cdo rempnn)
@@ -73,6 +81,8 @@ pism_input
 |   +-- remap.py
 +-- bheatflx_purucker
 |   +-- download_and_interpolate_to_netcdc.py
++-- bheatflx_shen
+|   +-- interpolate_to_netcdc.py
 +-- vel_rignot
 |   +-- preprocess_netcdf.py
 |   +-- remap.py
@@ -195,12 +205,23 @@ Data was given for use in this paper:
 
 #### Racmo data (v.2.3p2)
 
-The latest RACMO2.3p2 data (ANT27/2) forced by ERA-Interim provide yearly mean air temperature (t2m) and surface mass balance (smb) for the years 1979-2016. 
+The latest RACMO2.3p2 data (ANT27/2) forced by *ERA-Interim* provide yearly mean air temperature (t2m) and surface mass balance (smb) for the years 1979-2016. 
 
-Citation: 
-- Van Wessem, J. M., van de Berg, W. J., Noël, B. P., van Meijgaard, E., Birnbaum, G., Jakobs, C. L., ... & Medley, B. (2017). Modelling the climate and surface mass balance of polar ice sheets using RACMO2, part 2: Antarctica (1979–2016). Cryosph. Discuss., 1-35.
+
+Citation:
+- Van Wessem, Jan Melchior, Willem Jan Van De Berg, Brice PY Noël, Erik Van Meijgaard, Charles Amory, Gerit Birnbaum, Constantijn L. Jakobs et al. "Modelling the climate and surface mass balance of polar ice sheets using racmo2: Part 2: Antarctica (1979-2016)." Cryosphere 12, no. 4 (2018): 1479-1498.
+
+download link: https://www.projects.science.uu.nl/iceclimate/publications/data/2018/vwessem2018_tc/RACMO_Yearly/
 
 see also overview: https://www.projects.science.uu.nl/iceclimate/models/antarctica.php
+
+
+RACMO2.3p2 data (ANT27/2) forced by *HadCM3* climate model provide yearly mean air temperature (tskin) and surface mass balance (smb) for the historical period 1980-1999 and the A1B projection period 2000-2200.
+
+RACMO2.3p2 data (ANT27/2) forced by *CESM2* climate model provide monthly mean air temperature (tskin) and surface mass balance (smb) for the historical period 1950-2014 and the SPP585 projection period 2015-2100.
+
+not yet published, contact J.M.vanWessem[at]uu.nl
+
 
 
 
@@ -217,6 +238,9 @@ Citation:
 
 
 ### Geothermal flux
+
+overview white paper:
+- https://www.scar.org/scar-news/serce-news/scar-serce-ghf
 
 #### Albmap data
 
@@ -250,6 +274,15 @@ Documentation: http://www.seismolab.org/model/antarctica/lithosphere/#an1-hf
 
 Citation:
 - An, M., Wiens, D.A., Zhao, Y., Feng, M., Nyblade, A., Kanao, M., Li, Y., Maggi, A. and Lévêque, J.J., 2015. Temperature, lithosphere‐asthenosphere boundary, and heat flux beneath the Antarctic Plate inferred from seismic velocities. Journal of Geophysical Research: Solid Earth, 120(12), pp.8720-8742.
+
+
+#### Shen data
+
+Documentation: https://sites.google.com/view/weisen/research-products?authuser=0
+
+Citation:
+- Shen, W., Wiens, D., Lloyd, A. and Nyblade, A., 2020. A Geothermal heat flux map of Antarctica empirically constrained by seismic structure. Geophysical Research Letters, https://doi.org/10.1029/2020GL086955
+
 
 
 ### Southern Ocean
